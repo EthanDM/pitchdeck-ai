@@ -5,7 +5,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 })
 
-// Define supported industries to ensure diversity
+// Define supported industries for diversity
 const INDUSTRIES = [
   'AI & Machine Learning',
   'FinTech',
@@ -19,16 +19,17 @@ const INDUSTRIES = [
   'Cybersecurity',
 ] as const
 
-// Helper function to generate startup ideas via OpenAI
+// Generate Startup Ideas with a More Human-Like Response
 async function generateStartupIdeas() {
   const prompt = `
-    You are an AI-powered startup idea generator. Your task is to generate **5 innovative, well-structured startup ideas** across different industries.
+    You are a startup idea generator. Create **5 compelling startup ideas** across different industries, making them sound natural and investment-worthy.
 
     ### Instructions:
-    - Each startup must be **realistic, modern, and compelling**.
-    - Select an industry from this list: **${INDUSTRIES.join(', ')}**
-    - Provide **concrete financial projections** based on **realistic benchmarks**.
-    - Use JSON format **only**, with company name as the key.
+    - Choose industries from: **${INDUSTRIES.join(', ')}**
+    - Make ideas **modern, realistic, and engaging**.
+    - Keep explanations **concise and easy to understand**.
+    - Format financial projections as **a short, natural sentence**.
+    - Use JSON format **only**, with the company name as the key.
 
     ### Output Format (JSON Example):
     {
@@ -38,11 +39,7 @@ async function generateStartupIdeas() {
         "targetMarket": "Who are the customers?",
         "uniqueSellingPoint": "What makes this startup unique?",
         "competitiveAdvantage": "Why will this beat competitors?",
-        "financialProjections": {
-          "year1": "$X revenue",
-          "year3": "$Y revenue",
-          "year5": "$Z revenue"
-        }
+        "financialProjections": "Expected to hit $2M in revenue within the first year, scaling to $10M by year three."
       }
     }
   `
@@ -57,82 +54,69 @@ async function generateStartupIdeas() {
   return JSON.parse(completion.choices[0].message.content || '{}')
 }
 
-// Fallback startup ideas (used only if API call fails)
+// Fallback Startup Ideas (Humanized & Condensed)
 const FALLBACK_SAMPLES = {
   'AI Resume Screener': {
     businessIdea:
       'An AI-powered resume screening platform that helps companies automatically filter and rank candidates based on job descriptions.',
     industry: 'HR Tech',
-    targetMarket: 'Recruiters, Hiring Managers, Enterprises',
+    targetMarket:
+      'Recruiters, hiring managers, and enterprises looking to streamline hiring.',
     uniqueSellingPoint:
       'Uses advanced NLP to analyze resumes beyond keywords, assessing soft skills and cultural fit.',
     competitiveAdvantage:
       'Faster, unbiased candidate screening compared to manual processes.',
-    financialProjections: {
-      year1: '$1M revenue',
-      year3: '$5M revenue',
-      year5: '$15M revenue',
-    },
+    financialProjections:
+      'Expected to reach $1M in revenue in year one, growing to $5M+ by year three.',
   },
   'GreenCharge EV': {
     businessIdea:
       'A network of AI-optimized EV charging stations that dynamically adjust pricing and energy distribution based on demand.',
     industry: 'CleanTech',
-    targetMarket: 'EV owners, fleet operators, municipalities',
+    targetMarket:
+      'EV owners, fleet operators, and city infrastructure planners.',
     uniqueSellingPoint:
-      'Smart AI-driven load balancing reduces energy costs for both users and providers.',
+      'AI-driven load balancing reduces costs and speeds up charging times.',
     competitiveAdvantage:
-      'Unlike Tesla Superchargers, this is a brand-agnostic solution that works with all EVs.',
-    financialProjections: {
-      year1: '$3M revenue',
-      year3: '$12M revenue',
-      year5: '$50M revenue',
-    },
+      'Unlike Tesla Superchargers, this works with all EVs and is optimized for peak energy efficiency.',
+    financialProjections:
+      'On track to deploy 500 stations in the first year, aiming for $10M+ revenue by year three.',
   },
   'FitAI Coach': {
     businessIdea:
-      'An AI-powered virtual fitness and nutrition coach that provides personalized workout and meal plans based on user data.',
+      'An AI-powered virtual fitness and nutrition coach that creates personalized workout and meal plans.',
     industry: 'HealthTech',
-    targetMarket: 'Fitness enthusiasts, personal trainers, gyms',
+    targetMarket: 'Health-conscious individuals, gyms, and personal trainers.',
     uniqueSellingPoint:
-      'AI continuously adapts fitness routines and diets based on progress, health data, and goals.',
+      'Real-time AI adjustments based on user progress and health data.',
     competitiveAdvantage:
-      'Unlike generic fitness apps, it leverages AI for real-time adjustments and motivation.',
-    financialProjections: {
-      year1: '$2M revenue',
-      year3: '$8M revenue',
-      year5: '$25M revenue',
-    },
+      'Unlike generic fitness apps, it continuously evolves workouts for optimal results.',
+    financialProjections:
+      'Expecting 50,000+ users by year one, generating $2M in revenue with steady growth.',
   },
   LegalBot: {
     businessIdea:
-      'An AI-driven chatbot that provides instant legal guidance and document drafting for startups and small businesses.',
+      'An AI-driven chatbot that provides instant legal guidance and document drafting for small businesses.',
     industry: 'Legal Tech',
-    targetMarket: 'Startup founders, freelancers, small business owners',
+    targetMarket: 'Startup founders, freelancers, and small business owners.',
     uniqueSellingPoint:
-      'Instant, affordable legal guidance without expensive hourly lawyer fees.',
+      'Affordable, instant legal guidance without the need for a lawyer.',
     competitiveAdvantage:
-      'Trained on thousands of real legal cases and constantly updated with new regulations.',
-    financialProjections: {
-      year1: '$500K revenue',
-      year3: '$5M revenue',
-      year5: '$20M revenue',
-    },
+      'Uses a database of thousands of legal cases and adapts to new regulations.',
+    financialProjections:
+      'Projected to onboard 100,000 users in two years, reaching $5M in annual revenue.',
   },
   MetaReal: {
     businessIdea:
-      'A virtual reality platform where users can tour and customize real estate properties in 3D before purchasing or renting.',
+      'A virtual reality platform where users can tour and customize real estate properties in 3D before purchase.',
     industry: 'PropTech',
-    targetMarket: 'Homebuyers, realtors, real estate developers',
+    targetMarket: 'Homebuyers, realtors, and real estate developers.',
     uniqueSellingPoint:
-      'Immersive virtual tours with AI-driven home customization before purchase.',
+      'Immersive VR tours with AI-driven customization options.',
     competitiveAdvantage:
-      'Unlike traditional real estate listings, buyers can visualize renovations before making a decision.',
-    financialProjections: {
-      year1: '$10M in transactions',
-      year3: '$100M in transactions',
-      year5: '$500M in transactions',
-    },
+      'Unlike static listings, buyers can visualize modifications before committing.',
+    financialProjections:
+      'Expected to facilitate $100M in transactions within three years.',
   },
 } as const
 
@@ -142,7 +126,7 @@ export async function GET() {
     const sampleProjects = await generateStartupIdeas()
     return NextResponse.json(sampleProjects)
   } catch (error) {
-    console.error('Error generating sample projects:', error)
+    console.error('Error generating startup ideas:', error)
     return NextResponse.json(FALLBACK_SAMPLES) // Use fallback if API call fails
   }
 }
