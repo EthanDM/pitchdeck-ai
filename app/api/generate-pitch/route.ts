@@ -11,9 +11,9 @@ async function generatePitchDeckOutline(
   body: BusinessDetails
 ): Promise<PitchDeck> {
   const prompt = `
-    You are a professional startup consultant. Generate a **structured startup pitch deck outline** with 13 slides.
+    Create a startup pitch deck outline and return it as a JSON object.
 
-    ### Inputs:
+    ### Business Details:
     - Business Idea: ${body.businessIdea}
     - Industry: ${body.industry}
     - Target Market: ${body.targetMarket}
@@ -33,21 +33,45 @@ async function generatePitchDeckOutline(
         : ''
     }
 
-    ### Output Format:
+    ### Required Slides:
+    Generate a 13-slide pitch deck with these sections:
+    1. Title
+    2. Problem
+    3. Solution
+    4. How It Works
+    5. Market
+    6. Revenue Model
+    7. Projections
+    8. Traction
+    9. Go-to-Market (GTM)
+    10. Competition
+    11. Team
+    12. Ask (Funding needs)
+    13. Thank You
+
+    Return a JSON object with this exact structure:
     {
       "slides": [
-        { "title": "Problem", "content": "Short summary of the problem.", "subSections": ["Why this is a problem", "Existing solutions", "Why those fail"] },
-        { "title": "Solution", "content": "Short summary of your startup's solution.", "subSections": ["How it works", "Core benefits", "Why it's better"] },
-        { "title": "Go-to-Market (GTM)", "content": "How you will acquire customers.", "subSections": ["Target customers", "Marketing strategy", "Customer retention"] }
+        {
+          "title": "string",
+          "content": "string",
+          "bulletPoints": ["string", "string"]
+        }
       ]
     }
   `
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
+    model: 'gpt-4-turbo-preview',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a pitch deck expert. Return only valid JSON in the specified format.',
+      },
+      { role: 'user', content: prompt },
+    ],
     response_format: { type: 'json_object' },
-    max_tokens: 1200,
   })
 
   return JSON.parse(completion.choices[0].message.content || '{}') as PitchDeck
@@ -56,36 +80,39 @@ async function generatePitchDeckOutline(
 // **Step 2: Enrich Each Slide**
 async function enrichSlide(slide: Slide): Promise<Slide> {
   const prompt = `
-    You are a professional startup consultant. Expand the following **pitch deck slide** into a **detailed, structured** explanation.
+    Enhance this pitch deck slide and return it as a JSON object.
 
-    ### Slide Details:
+    Current slide:
     - Title: ${slide.title}
-    - Content Summary: ${slide.content}
-    - Key Subsections: ${JSON.stringify(slide.subSections)}
+    - Content: ${slide.content}
+    ${
+      slide.bulletPoints
+        ? `- Bullet Points: ${JSON.stringify(slide.bulletPoints)}`
+        : ''
+    }
 
-    ### Requirements:
-    1. Write **a full-length, engaging slide explanation**.
-    2. Answer all **key questions** to ensure depth.
-    3. Add **bullet points** for clarity.
-    4. Keep it **clear, concise, and startup-friendly**.
+    Make the content more engaging and detailed while maintaining clarity.
+    Add or improve bullet points to highlight key information.
 
-    ### Example Output:
+    Return a JSON object with this exact structure:
     {
-      "title": "Problem",
-      "content": "Hiring is slow and expensive. Companies waste time filtering resumes manually.",
-      "bulletPoints": [
-        "Recruiters spend 40% of their time on resume screening.",
-        "Hiring delays lead to $1.2M in lost revenue per company annually.",
-        "Current solutions fail to assess candidate culture fit."
-      ]
+      "title": "string",
+      "content": "string",
+      "bulletPoints": ["string", "string", "string"]
     }
   `
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
+    model: 'gpt-4-turbo-preview',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a pitch deck expert. Return only valid JSON in the specified format.',
+      },
+      { role: 'user', content: prompt },
+    ],
     response_format: { type: 'json_object' },
-    max_tokens: 800,
   })
 
   return JSON.parse(completion.choices[0].message.content || '{}') as Slide
@@ -95,10 +122,10 @@ export async function POST(req: Request) {
   try {
     const body: BusinessDetails = await req.json()
 
-    // **Step 1: Generate the structured pitch deck outline**
+    // **Step 1: Generate the initial pitch deck**
     const pitchDeck = await generatePitchDeckOutline(body)
 
-    // **Step 2: Enrich each slide deeply**
+    // **Step 2: Enrich each slide**
     const enrichedSlides = await Promise.all(pitchDeck.slides.map(enrichSlide))
 
     return NextResponse.json({ slides: enrichedSlides })

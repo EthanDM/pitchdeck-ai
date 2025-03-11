@@ -16,6 +16,7 @@ export interface Slide {
     bulletPoints?: string[]
   }[]
   imagePrompt?: string
+  bulletPoints?: string[]
 }
 
 export interface PitchDeck {

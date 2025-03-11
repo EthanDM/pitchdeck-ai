@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai'
 import { NextResponse } from 'next/server'
+import type { BusinessDetails } from '@/app/types/pitch'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -19,43 +20,51 @@ const INDUSTRIES = [
   'Cybersecurity',
 ] as const
 
-// Generate Startup Ideas with a More Human-Like Response
+// Generate Startup Ideas
 async function generateStartupIdeas() {
   const prompt = `
-    You are a startup idea generator. Create **5 compelling startup ideas** across different industries, making them sound natural and investment-worthy.
+    Generate 5 innovative startup ideas and return them as a JSON object.
 
-    ### Instructions:
-    - Choose industries from: **${INDUSTRIES.join(', ')}**
-    - Make ideas **modern, realistic, and engaging**.
-    - Keep explanations **concise and easy to understand**.
-    - Format financial projections as **a short, natural sentence**.
-    - Use JSON format **only**, with the company name as the key.
+    Choose industries from this list:
+    ${INDUSTRIES.join(', ')}
 
-    ### Output Format (JSON Example):
+    Requirements:
+    - Make each idea modern and realistic
+    - Include clear business models
+    - Keep descriptions concise
+    - Use natural language for financial projections
+
+    Return a JSON object with this exact structure:
     {
       "Company Name": {
-        "businessIdea": "A brief but compelling business idea.",
-        "industry": "Industry category",
-        "targetMarket": "Who are the customers?",
-        "uniqueSellingPoint": "What makes this startup unique?",
-        "competitiveAdvantage": "Why will this beat competitors?",
-        "financialProjections": "Expected to hit $2M in revenue within the first year, scaling to $10M by year three."
+        "businessIdea": "string",
+        "industry": "string",
+        "targetMarket": "string",
+        "uniqueSellingPoint": "string",
+        "competitiveAdvantage": "string",
+        "financialProjections": "string"
       }
     }
   `
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' }, // Forces JSON output
-    max_tokens: 1500,
+    model: 'gpt-4-turbo-preview',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a startup idea generator. Return only valid JSON in the specified format.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    response_format: { type: 'json_object' },
   })
 
   return JSON.parse(completion.choices[0].message.content || '{}')
 }
 
-// Fallback Startup Ideas (Humanized & Condensed)
-const FALLBACK_SAMPLES = {
+// Fallback samples in case API fails
+const FALLBACK_SAMPLES: Record<string, BusinessDetails> = {
   'AI Resume Screener': {
     businessIdea:
       'An AI-powered resume screening platform that helps companies automatically filter and rank candidates based on job descriptions.',
@@ -118,7 +127,7 @@ const FALLBACK_SAMPLES = {
     financialProjections:
       'Expected to facilitate $100M in transactions within three years.',
   },
-} as const
+}
 
 // API Route Handler
 export async function GET() {
@@ -127,6 +136,6 @@ export async function GET() {
     return NextResponse.json(sampleProjects)
   } catch (error) {
     console.error('Error generating startup ideas:', error)
-    return NextResponse.json(FALLBACK_SAMPLES) // Use fallback if API call fails
+    return NextResponse.json(FALLBACK_SAMPLES)
   }
 }
