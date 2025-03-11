@@ -1322,7 +1322,1151 @@ yes, add keyboard shortcuts, a progress bar, and smooth nice transitions as need
 
 _**Assistant**_
 
+I'll enhance the SlideDisplay component with keyboard navigation, a progress bar, and smooth transitions. I'll also refine the overall feel to be more modern and light:
 
+---
+
+_****_
+
+```diff
+  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+  import { Button } from '@/components/ui/button'
++ import { motion, AnimatePresence } from 'framer-motion'
+  import type { PitchDeck, Slide } from '@/app/types/pitch'
+  
+    const [currentSlide, setCurrentSlide] = useState(1)
+    const [api, setApi] = useState<CarouselApi>()
++   const [isTransitioning, setIsTransitioning] = useState(false)
+  
+    useEffect(() => {
+        setCurrentSlide(api.selectedScrollSnap() + 1)
+      })
++ 
++     // Add transition start/end listeners
++     api.on('settle', () => setIsTransitioning(false))
++     api.on('dragStart', () => setIsTransitioning(true))
+    }, [api])
+  
+    useEffect(() => {
+      const handleKeyPress = (e: KeyboardEvent) => {
+-       if (e.key === 'Escape' && isFullscreen && onExitFullscreen) {
++       if (!api) return
++ 
++       switch (e.key) {
++         case 'ArrowLeft':
++         case 'PageUp':
++           api.scrollPrev()
++           break
++         case 'ArrowRight':
++         case 'PageDown':
++         case 'Space':
++           api.scrollNext()
++           break
++         case 'Home':
++           api.scrollTo(0)
++           break
++         case 'End':
++           api.scrollTo(pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0)
++           break
++         case 'Escape':
++           if (isFullscreen && onExitFullscreen) {
+              onExitFullscreen()
++           }
++           break
+        }
+      }
+  
+      window.addEventListener('keydown', handleKeyPress)
+      return () => window.removeEventListener('keydown', handleKeyPress)
+-   }, [isFullscreen, onExitFullscreen])
++   }, [api, isFullscreen, onExitFullscreen, pitchDeck?.slides.length])
+  
+    if (!pitchDeck) {
+      : 'w-full max-w-[1024px] mx-auto'
+  
++   const progress = (currentSlide / pitchDeck.slides.length) * 100
++ 
+    return (
+-     <div className={containerClasses}>
+-       <div
+-         className={`relative h-full ${
+-           !isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''
+-         }`}
+-       >
++     <motion.div 
++       className={containerClasses}
++       initial={{ opacity: 0, y: 20 }}
++       animate={{ opacity: 1, y: 0 }}
++       transition={{ duration: 0.3 }}
++     >
++       <div className={`relative h-full ${!isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''}`}>
++         {/* Progress bar */}
++         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200/20">
++           <motion.div
++             className="h-full bg-blue-500/50 backdrop-blur-sm"
++             initial={{ width: 0 }}
++             animate={{ width: `${progress}%` }}
++             transition={{ duration: 0.3 }}
++           />
++         </div>
++ 
+          {/* Controls bar */}
+-         <div
+-           className={`
++         <div className={`
+            absolute top-4 right-4 z-10 flex items-center gap-4
+            ${isFullscreen ? 'text-white' : 'text-gray-900'}
+-         `}
+-         >
+-           <div className='bg-gray-800/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium'>
+-             Slide {currentSlide} of {pitchDeck.slides.length}
++         `}>
++           <div className="flex items-center gap-2 bg-gray-800/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium">
++             <span className="text-xl font-bold">{currentSlide}</span>
++             <span className="text-gray-400">/</span>
++             <span className="text-gray-400">{pitchDeck.slides.length}</span>
+            </div>
+            {isFullscreen && onExitFullscreen && (
+              <Button
+-               variant='outline'
++               variant="outline"
+                onClick={onExitFullscreen}
+-               className='bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20'
++               className="bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20 transition-colors"
+              >
+                Exit Fullscreen
+          </div>
+  
+-         <Carousel className='w-full h-full' setApi={setApi}>
+-           <CarouselContent className='h-full'>
++         <Carousel className="w-full h-full" setApi={setApi}>
++           <CarouselContent className="h-full">
+              {pitchDeck.slides.map((slide: Slide, index: number) => (
+-               <CarouselItem key={index} className='h-full'>
+-                 {/* 16:9 aspect ratio container in normal mode, full height in fullscreen */}
+-                 <div
+-                   className={`relative w-full ${
+-                     isFullscreen ? 'h-full' : 'pt-[56.25%]'
+-                   }`}
++               <CarouselItem key={index} className="h-full">
++                 <motion.div
++                   className={`relative w-full ${isFullscreen ? 'h-full' : 'pt-[56.25%]'}`}
++                   initial={{ opacity: 0 }}
++                   animate={{ opacity: 1 }}
++                   exit={{ opacity: 0 }}
++                   transition={{ duration: 0.2 }}
+                  >
+-                   <Card
+-                     className={`
+-                     absolute top-0 left-0 w-full h-full overflow-hidden
++                   <Card className={`
++                     absolute top-0 left-0 w-full h-full overflow-hidden transition-colors duration-300
+                      ${isFullscreen ? 'bg-gray-900 text-white border-0' : ''}
+-                   `}
+-                   >
+-                     <div className='h-full flex flex-col'>
+-                       {/* Header */}
+-                       <CardHeader
+-                         className={`
+-                         flex-none py-8 border-b
+-                         ${
+-                           isFullscreen
+-                             ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+-                             : 'bg-gradient-to-br from-gray-50 to-white'
+-                         }
+-                       `}
++                   `}>
++                     <div className="h-full flex flex-col">
++                       <CardHeader className={`
++                         flex-none py-8 border-b transition-colors duration-300
++                         ${isFullscreen 
++                           ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700' 
++                           : 'bg-gradient-to-br from-gray-50 to-white'}
++                       `}>
++                         <motion.div
++                           initial={{ y: -20, opacity: 0 }}
++                           animate={{ y: 0, opacity: 1 }}
++                           transition={{ duration: 0.3, delay: 0.1 }}
+                          >
+-                         <CardTitle
+-                           className={`
++                           <CardTitle className={`
+                              text-4xl font-bold text-center
+                              ${isFullscreen ? 'text-white' : 'text-gray-900'}
+-                         `}
+-                         >
++                           `}>
+                              {slide.title}
+                            </CardTitle>
++                         </motion.div>
+                        </CardHeader>
+  
+-                       {/* Content area */}
+-                       <CardContent className='flex-1 p-8 overflow-y-auto'>
+-                         <div className='max-w-4xl mx-auto space-y-6'>
+-                           <p
+-                             className={`
+-                             text-2xl leading-relaxed
++                       <CardContent className="flex-1 p-8 overflow-y-auto">
++                         <motion.div 
++                           className="max-w-4xl mx-auto space-y-6"
++                           initial={{ y: 20, opacity: 0 }}
++                           animate={{ y: 0, opacity: 1 }}
++                           transition={{ duration: 0.3, delay: 0.2 }}
++                         >
++                           <p className={`
++                             text-2xl leading-relaxed transition-colors duration-300
+                              ${isFullscreen ? 'text-gray-200' : 'text-gray-700'}
+-                           `}
+-                           >
++                           `}>
+                              {slide.content}
+                            </p>
+-                           {slide.bulletPoints &&
+-                             slide.bulletPoints.length > 0 && (
+-                               <ul className='space-y-4 list-none mt-8'>
++                           {slide.bulletPoints && slide.bulletPoints.length > 0 && (
++                             <motion.ul 
++                               className="space-y-4 list-none mt-8"
++                               initial="hidden"
++                               animate="visible"
++                               variants={{
++                                 visible: {
++                                   transition: { staggerChildren: 0.1 }
++                                 }
++                               }}
++                             >
+                                {slide.bulletPoints.map((point, i) => (
+-                                   <li
++                                 <motion.li
+                                    key={i}
+-                                     className='flex items-start space-x-4'
++                                   className="flex items-start space-x-4"
++                                   variants={{
++                                     hidden: { opacity: 0, x: -20 },
++                                     visible: { opacity: 1, x: 0 }
++                                   }}
+                                  >
+-                                     <span
+-                                       className={`
+-                                     flex-none mt-2 w-2.5 h-2.5 rounded-full
+-                                     ${
+-                                       isFullscreen
+-                                         ? 'bg-blue-400'
+-                                         : 'bg-blue-500'
+-                                     }
+-                                   `}
+-                                     />
+-                                     <span
+-                                       className={`
+-                                     text-xl
+-                                     ${
+-                                       isFullscreen
+-                                         ? 'text-gray-300'
+-                                         : 'text-gray-700'
+-                                     }
+-                                   `}
+-                                     >
++                                   <span className={`
++                                     flex-none mt-2 w-2.5 h-2.5 rounded-full transition-colors duration-300
++                                     ${isFullscreen ? 'bg-blue-400' : 'bg-blue-500'}
++                                   `} />
++                                   <span className={`
++                                     text-xl transition-colors duration-300
++                                     ${isFullscreen ? 'text-gray-300' : 'text-gray-700'}
++                                   `}>
+                                      {point}
+                                    </span>
+-                                   </li>
++                                 </motion.li>
+                                ))}
+-                               </ul>
++                             </motion.ul>
+                            )}
+-                         </div>
++                         </motion.div>
+                        </CardContent>
+                      </div>
+                    </Card>
+-                 </div>
++                 </motion.div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+  
+-           {/* Navigation buttons */}
+-           <div
+-             className={`
+-             absolute -left-12 top-1/2 -translate-y-1/2
++           {/* Navigation buttons with hover effects */}
++           <div className={`
++             absolute -left-12 top-1/2 -translate-y-1/2 transition-all duration-300
+              ${isFullscreen ? 'left-4' : '-left-12'}
+-           `}
+-           >
+-             <CarouselPrevious
+-               className={`
+-               h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
+-               ${
+-                 isFullscreen
+-                   ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                   : ''
+-               }
+-             `}
+-             />
++           `}>
++             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
++               <CarouselPrevious className={`
++                 h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
++                 ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++               `} />
++             </motion.div>
+            </div>
+-           <div
+-             className={`
+-             absolute -right-12 top-1/2 -translate-y-1/2
++           <div className={`
++             absolute -right-12 top-1/2 -translate-y-1/2 transition-all duration-300
+              ${isFullscreen ? 'right-4' : '-right-12'}
+-           `}
+-           >
+-             <CarouselNext
+-               className={`
+-               h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
+-               ${
+-                 isFullscreen
+-                   ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                   : ''
+-               }
+-             `}
+-             />
++           `}>
++             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
++               <CarouselNext className={`
++                 h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
++                 ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++               `} />
++             </motion.div>
+            </div>
+          </Carousel>
++ 
++         {/* Keyboard shortcuts help */}
++         <div className={`
++           absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 text-sm
++           bg-gray-800/10 backdrop-blur-sm px-4 py-2 rounded-full
++           ${isFullscreen ? 'text-gray-400' : 'text-gray-600'}
++         `}>
++           <span>← → arrows to navigate</span>
++           <span>Space for next</span>
++           {isFullscreen && <span>Esc to exit</span>}
++         </div>
+        </div>
+-     </div>
++     </motion.div>
+    )
+  }
+```
+
+---
+
+_****_
+
+Let's install framer-motion and fix the linter errors:
+
+---
+
+_****_
+
+```bash
+npm install framer-motion
+```
+
+```
+
+ ~/GitHub/pitchdeck-ai   main ● 
+ ✔  npm install framer-motion
+
+added 3 packages, and audited 401 packages in 2s
+
+162 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+ ~/GitHub/pitchdeck-ai   main ● 
+ ✔ 
+```
+
+---
+
+_****_
+
+Now let's fix the linter errors:
+
+---
+
+_****_
+
+```diff
+      })
+  
+-     // Add transition start/end listeners
+-     api.on('settle', () => setIsTransitioning(false))
+-     api.on('dragStart', () => setIsTransitioning(true))
++     api.on('settle', () => {})
+    }, [api])
+  
+```
+
+---
+
+_****_
+
+Let's remove the unused imports and state:
+
+---
+
+_****_
+
+
+
+---
+
+_****_
+
+Let me try a more specific edit:
+
+---
+
+_****_
+
+```diff
+  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+  import { Button } from '@/components/ui/button'
+- import { motion, AnimatePresence } from 'framer-motion'
++ import { motion } from 'framer-motion'
+  import type { PitchDeck, Slide } from '@/app/types/pitch'
+  
+    const [currentSlide, setCurrentSlide] = useState(1)
+    const [api, setApi] = useState<CarouselApi>()
+-   const [isTransitioning, setIsTransitioning] = useState(false)
+  
+    useEffect(() => {
+```
+
+---
+
+_****_
+
+Great! Now we have:
+
+1. Keyboard navigation:
+   - Left/Right arrows to navigate slides
+   - Space/PageDown for next slide
+   - PageUp for previous slide
+   - Home/End to jump to first/last slide
+   - Escape to exit fullscreen
+
+2. Progress bar:
+   - Smooth, animated progress bar at the top
+   - Shows current position in the deck
+   - Transitions smoothly between slides
+
+3. Smooth transitions and animations:
+   - Slide content fades in
+   - Bullet points animate in sequence
+   - Navigation buttons have hover and click animations
+   - Smooth color transitions between modes
+
+4. Modern, light feel:
+   - Clean typography
+   - Subtle gradients
+   - Backdrop blur effects
+   - Responsive layout
+   - Keyboard shortcuts help
+   - Improved slide counter design
+
+The presentation now feels much more polished and professional, with smooth animations and intuitive navigation. Would you like me to:
+
+1. Add any additional keyboard shortcuts?
+2. Modify any of the animations or transitions?
+3. Adjust the styling or layout?
+4. Add any other features?
+
+---
+
+_**User**_
+
+1. arrow keys are navigating two pages, must be multiple listeners
+2. when full screen, i just see blue background, no slide content
+
+---
+
+_**Assistant**_
+
+Let's fix these issues:
+
+1. The double navigation is likely happening because both the Carousel component and our custom handler are listening to arrow keys. Let's modify our keyboard handler.
+2. The fullscreen layout issue is likely due to height calculations. Let's fix the styling.
+
+---
+
+_****_
+
+```diff
+        setCurrentSlide(api.selectedScrollSnap() + 1)
+      })
+- 
+-     api.on('settle', () => {})
+    }, [api])
+  
+        if (!api) return
+  
++       // Only handle non-arrow keys here since Carousel handles arrows
+        switch (e.key) {
+-         case 'ArrowLeft':
+          case 'PageUp':
++           e.preventDefault()
+            api.scrollPrev()
+            break
+-         case 'ArrowRight':
+          case 'PageDown':
+-         case 'Space':
++           e.preventDefault()
+            api.scrollNext()
+            break
++         case 'Space':
++           // Only handle space if not in an input/textarea
++           if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
++             e.preventDefault()
++             api.scrollNext()
++           }
++           break
+          case 'Home':
++           e.preventDefault()
+            api.scrollTo(0)
+            break
+          case 'End':
+-           api.scrollTo(
+-             pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0
+-           )
++           e.preventDefault()
++           api.scrollTo(pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0)
+            break
+          case 'Escape':
+  
+    const containerClasses = isFullscreen
+-     ? 'fixed inset-0 z-50 bg-gray-900'
++     ? 'fixed inset-0 z-50 bg-gray-900 overflow-hidden'
+      : 'w-full max-w-[1024px] mx-auto'
+  
+        transition={{ duration: 0.3 }}
+      >
+-       <div
+-         className={`relative h-full ${
+-           !isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''
+-         }`}
+-       >
++       <div className={`relative w-full h-full ${!isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''}`}>
+          {/* Progress bar */}
+-         <div className='absolute top-0 left-0 right-0 h-1 bg-gray-200/20'>
++         <div className='absolute top-0 left-0 right-0 h-1 bg-gray-200/20 z-20'>
+            <motion.div
+              className='h-full bg-blue-500/50 backdrop-blur-sm'
+  
+          {/* Controls bar */}
+-         <div
+-           className={`
+-           absolute top-4 right-4 z-10 flex items-center gap-4
++         <div className={`
++           absolute top-4 right-4 z-20 flex items-center gap-4
+            ${isFullscreen ? 'text-white' : 'text-gray-900'}
+-         `}
+-         >
++         `}>
+            <div className='flex items-center gap-2 bg-gray-800/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium'>
+              <span className='text-xl font-bold'>{currentSlide}</span>
+          </div>
+  
++         <div className='w-full h-full flex items-center justify-center'>
+            <Carousel className='w-full h-full' setApi={setApi}>
+              <CarouselContent className='h-full'>
+                {pitchDeck.slides.map((slide: Slide, index: number) => (
+                  <CarouselItem key={index} className='h-full'>
+                    <motion.div
+-                   className={`relative w-full ${
+-                     isFullscreen ? 'h-full' : 'pt-[56.25%]'
+-                   }`}
++                     className={`w-full h-full flex items-center justify-center ${isFullscreen ? 'p-8' : ''}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+-                   <Card
+-                     className={`
+-                     absolute top-0 left-0 w-full h-full overflow-hidden transition-colors duration-300
++                     <Card className={`
++                       w-full ${isFullscreen ? 'h-full' : 'aspect-[16/9]'} 
++                       overflow-hidden transition-colors duration-300 relative
+                        ${isFullscreen ? 'bg-gray-900 text-white border-0' : ''}
+-                   `}
+-                   >
++                     `}>
+                        <div className='h-full flex flex-col'>
+-                       <CardHeader
+-                         className={`
++                         <CardHeader className={`
+                            flex-none py-8 border-b transition-colors duration-300
+-                         ${
+-                           isFullscreen
++                           ${isFullscreen 
+                              ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700' 
+-                             : 'bg-gradient-to-br from-gray-50 to-white'
+-                         }
+-                       `}
+-                       >
++                             : 'bg-gradient-to-br from-gray-50 to-white'}
++                         `}>
+                            <motion.div
+                              initial={{ y: -20, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              transition={{ duration: 0.3, delay: 0.1 }}
+                            >
+-                           <CardTitle
+-                             className={`
++                             <CardTitle className={`
+                                text-4xl font-bold text-center
+                                ${isFullscreen ? 'text-white' : 'text-gray-900'}
+-                           `}
+-                           >
++                             `}>
+                                {slide.title}
+                              </CardTitle>
+                              transition={{ duration: 0.3, delay: 0.2 }}
+                            >
+-                           <p
+-                             className={`
++                             <p className={`
+                                text-2xl leading-relaxed transition-colors duration-300
+                                ${isFullscreen ? 'text-gray-200' : 'text-gray-700'}
+-                           `}
+-                           >
++                             `}>
+                                {slide.content}
+                              </p>
+-                           {slide.bulletPoints &&
+-                             slide.bulletPoints.length > 0 && (
++                             {slide.bulletPoints && slide.bulletPoints.length > 0 && (
+                                <motion.ul 
+                                  className='space-y-4 list-none mt-8'
+                                  variants={{
+                                    visible: {
+-                                     transition: { staggerChildren: 0.1 },
+-                                   },
++                                     transition: { staggerChildren: 0.1 }
++                                   }
+                                  }}
+                                >
+                                      variants={{
+                                        hidden: { opacity: 0, x: -20 },
+-                                       visible: { opacity: 1, x: 0 },
++                                       visible: { opacity: 1, x: 0 }
+                                      }}
+                                    >
+-                                     <span
+-                                       className={`
++                                     <span className={`
+                                        flex-none mt-2 w-2.5 h-2.5 rounded-full transition-colors duration-300
+-                                     ${
+-                                       isFullscreen
+-                                         ? 'bg-blue-400'
+-                                         : 'bg-blue-500'
+-                                     }
+-                                   `}
+-                                     />
+-                                     <span
+-                                       className={`
++                                       ${isFullscreen ? 'bg-blue-400' : 'bg-blue-500'}
++                                     `} />
++                                     <span className={`
+                                        text-xl transition-colors duration-300
+-                                     ${
+-                                       isFullscreen
+-                                         ? 'text-gray-300'
+-                                         : 'text-gray-700'
+-                                     }
+-                                   `}
+-                                     >
++                                       ${isFullscreen ? 'text-gray-300' : 'text-gray-700'}
++                                     `}>
+                                        {point}
+                                      </span>
+  
+              {/* Navigation buttons with hover effects */}
+-           <div
+-             className={`
+-             absolute -left-12 top-1/2 -translate-y-1/2 transition-all duration-300
++             <div className={`
++               absolute -left-12 top-1/2 -translate-y-1/2 transition-all duration-300 z-20
+                ${isFullscreen ? 'left-4' : '-left-12'}
+-           `}
+-           >
++             `}>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+-               <CarouselPrevious
+-                 className={`
++                 <CarouselPrevious className={`
+                    h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+-                 ${
+-                   isFullscreen
+-                     ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                     : ''
+-                 }
+-               `}
+-               />
++                   ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++                 `} />
+                </motion.div>
+              </div>
+-           <div
+-             className={`
+-             absolute -right-12 top-1/2 -translate-y-1/2 transition-all duration-300
++             <div className={`
++               absolute -right-12 top-1/2 -translate-y-1/2 transition-all duration-300 z-20
+                ${isFullscreen ? 'right-4' : '-right-12'}
+-           `}
+-           >
++             `}>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+-               <CarouselNext
+-                 className={`
++                 <CarouselNext className={`
+                    h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+-                 ${
+-                   isFullscreen
+-                     ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                     : ''
+-                 }
+-               `}
+-               />
++                   ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++                 `} />
+                </motion.div>
+              </div>
+            </Carousel>
++         </div>
+  
+          {/* Keyboard shortcuts help */}
+-         <div
+-           className={`
+-           absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 text-sm
++         <div className={`
++           absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 text-sm z-20
+            bg-gray-800/10 backdrop-blur-sm px-4 py-2 rounded-full
+            ${isFullscreen ? 'text-gray-400' : 'text-gray-600'}
+-         `}
+-         >
++         `}>
+            <span>← → arrows to navigate</span>
+            <span>Space for next</span>
+```
+
+---
+
+_****_
+
+I've made several important changes to fix the issues:
+
+1. **Fixed Double Navigation**:
+   - Removed arrow key handlers from our custom keyboard events
+   - Let the Carousel component handle arrow keys natively
+   - Added `preventDefault()` to our custom keyboard handlers
+   - Added check for input/textarea when handling space key
+
+2. **Fixed Fullscreen Layout**:
+   - Added `overflow-hidden` to the fullscreen container
+   - Improved the slide container layout with proper flex centering
+   - Changed from absolute positioning to flex layout for better fullscreen handling
+   - Added proper padding in fullscreen mode
+   - Increased z-index values to ensure controls are visible
+   - Made sure all elements maintain proper stacking order
+
+3. **Layout Improvements**:
+   - Added proper aspect ratio handling for both modes
+   - Better centering of content
+   - Improved spacing and padding
+   - Better handling of overflow content
+
+4. **Visual Improvements**:
+   - Added proper z-indexing for controls
+   - Improved backdrop blur effects
+   - Better transitions between modes
+
+The slides should now:
+1. Navigate properly with arrow keys (no double movement)
+2. Display correctly in fullscreen mode
+3. Maintain proper aspect ratio and centering
+4. Have better visibility of controls and content
+
+Would you like me to:
+1. Adjust any of the spacing or sizing?
+2. Modify the fullscreen appearance further?
+3. Add any additional navigation features?
+4. Make any other improvements?
+
+---
+
+_**User**_
+
+these buttons are cut off in top right when full screen
+
+---
+
+_**Assistant**_
+
+Let's fix the positioning and spacing of the controls in fullscreen mode to ensure they're always visible. I'll adjust the padding and positioning:
+
+---
+
+_****_
+
+```diff
+        transition={{ duration: 0.3 }}
+      >
+-       <div
+-         className={`relative w-full h-full ${
+-           !isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''
+-         }`}
+-       >
++       <div className={`relative w-full h-full ${!isFullscreen ? 'bg-white rounded-lg shadow-lg' : 'p-safe'}`}>
+          {/* Progress bar */}
+-         <div className='absolute top-0 left-0 right-0 h-1 bg-gray-200/20 z-20'>
++         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200/20 z-20">
+            <motion.div
+-             className='h-full bg-blue-500/50 backdrop-blur-sm'
++             className="h-full bg-blue-500/50 backdrop-blur-sm"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+  
+          {/* Controls bar */}
+-         <div
+-           className={`
+-           absolute top-4 right-4 z-20 flex items-center gap-4
+-           ${isFullscreen ? 'text-white' : 'text-gray-900'}
+-         `}
+-         >
+-           <div className='flex items-center gap-2 bg-gray-800/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium'>
+-             <span className='text-xl font-bold'>{currentSlide}</span>
+-             <span className='text-gray-400'>/</span>
+-             <span className='text-gray-400'>{pitchDeck.slides.length}</span>
++         <div className={`
++           absolute ${isFullscreen ? 'top-6 right-6' : 'top-4 right-4'} z-20 
++           flex items-center gap-4 max-w-full
++         `}>
++           <div className="flex items-center gap-2 bg-gray-800/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium">
++             <span className="text-xl font-bold text-gray-100">{currentSlide}</span>
++             <span className="text-gray-400">/</span>
++             <span className="text-gray-400">{pitchDeck.slides.length}</span>
+            </div>
+            {isFullscreen && onExitFullscreen && (
+              <Button
+-               variant='outline'
++               variant="outline"
+                onClick={onExitFullscreen}
+-               className='bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20 transition-colors'
++               className="bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20 transition-colors border-gray-700 text-gray-100"
+              >
+                Exit Fullscreen
+          </div>
+  
+-         <div className='w-full h-full flex items-center justify-center'>
+-           <Carousel className='w-full h-full' setApi={setApi}>
+-             <CarouselContent className='h-full'>
++         <div className="w-full h-full flex items-center justify-center">
++           <Carousel className="w-full h-full" setApi={setApi}>
++             <CarouselContent className="h-full">
+                {pitchDeck.slides.map((slide: Slide, index: number) => (
+-                 <CarouselItem key={index} className='h-full'>
++                 <CarouselItem key={index} className="h-full">
+                    <motion.div
+                      className={`w-full h-full flex items-center justify-center ${
+-                       isFullscreen ? 'p-8' : ''
++                       isFullscreen ? 'p-12' : ''
+                      }`}
+                      initial={{ opacity: 0 }}
+  
+              {/* Navigation buttons with hover effects */}
+-             <div
+-               className={`
++             <div className={`
+                absolute -left-12 top-1/2 -translate-y-1/2 transition-all duration-300 z-20
+-               ${isFullscreen ? 'left-4' : '-left-12'}
+-             `}
+-             >
+-               <motion.div
+-                 whileHover={{ scale: 1.1 }}
+-                 whileTap={{ scale: 0.95 }}
+-               >
+-                 <CarouselPrevious
+-                   className={`
++               ${isFullscreen ? 'left-8' : '-left-12'}
++             `}>
++               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
++                 <CarouselPrevious className={`
+                    h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+-                   ${
+-                     isFullscreen
+-                       ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                       : ''
+-                   }
+-                 `}
+-                 />
++                   ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++                 `} />
+                </motion.div>
+              </div>
+-             <div
+-               className={`
++             <div className={`
+                absolute -right-12 top-1/2 -translate-y-1/2 transition-all duration-300 z-20
+-               ${isFullscreen ? 'right-4' : '-right-12'}
+-             `}
+-             >
+-               <motion.div
+-                 whileHover={{ scale: 1.1 }}
+-                 whileTap={{ scale: 0.95 }}
+-               >
+-                 <CarouselNext
+-                   className={`
++               ${isFullscreen ? 'right-8' : '-right-12'}
++             `}>
++               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
++                 <CarouselNext className={`
+                    h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+-                   ${
+-                     isFullscreen
+-                       ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+-                       : ''
+-                   }
+-                 `}
+-                 />
++                   ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++                 `} />
+                </motion.div>
+              </div>
+  
+          {/* Keyboard shortcuts help */}
+-         <div
+-           className={`
+-           absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 text-sm z-20
++         <div className={`
++           absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 text-sm z-20
+            bg-gray-800/10 backdrop-blur-sm px-4 py-2 rounded-full
+-           ${isFullscreen ? 'text-gray-400' : 'text-gray-600'}
+-         `}
+-         >
++           ${isFullscreen ? 'text-gray-300' : 'text-gray-600'}
++         `}>
+            <span>← → arrows to navigate</span>
+            <span>Space for next</span>
+```
+
+---
+
+_****_
+
+I've made several changes to fix the positioning and improve the fullscreen experience:
+
+1. **Controls Positioning**:
+   - Increased padding in fullscreen mode (`top-6 right-6` instead of `top-4 right-4`)
+   - Added `max-w-full` to ensure controls don't overflow
+   - Improved text contrast with `text-gray-100`
+   - Added border color to the exit button for better visibility
+
+2. **Navigation Buttons**:
+   - Increased spacing from edges in fullscreen mode (`left-8`/`right-8` instead of `left-4`/`right-4`)
+   - Improved visibility with consistent backdrop blur
+
+3. **Layout Improvements**:
+   - Added more padding to slides in fullscreen mode (`p-12` instead of `p-8`)
+   - Added `p-safe` class for better edge spacing in fullscreen
+   - Increased bottom spacing for keyboard shortcuts help
+   - Improved text contrast throughout
+
+4. **Visual Refinements**:
+   - Better contrast for text and controls
+   - More consistent spacing
+   - Improved button styling in fullscreen mode
+
+The controls should now be fully visible and properly spaced in fullscreen mode. Would you like me to:
+
+1. Adjust any of the spacings further?
+2. Modify the control styles or colors?
+3. Add any additional visual improvements?
+4. Make any other changes to the fullscreen experience?
+
+---
+
+_**User**_
+
+arrow keys are not working in full screen
+
+---
+
+_**Assistant**_
+
+The issue might be that the Carousel's built-in keyboard navigation isn't working in fullscreen mode. Let's implement our own arrow key handling and ensure it works in both modes:
+
+---
+
+_****_
+
+```diff
+        if (!api) return
+  
+-       // Only handle non-arrow keys here since Carousel handles arrows
+        switch (e.key) {
++         case 'ArrowLeft':
++           e.preventDefault()
++           api.scrollPrev()
++           break
++         case 'ArrowRight':
++           e.preventDefault()
++           api.scrollNext()
++           break
+          case 'PageUp':
+            e.preventDefault()
+  
+          <div className='w-full h-full flex items-center justify-center'>
+-           <Carousel className='w-full h-full' setApi={setApi}>
++           <Carousel
++             className='w-full h-full'
++             setApi={setApi}
++             opts={{
++               dragFree: false,
++               containScroll: 'trimSnaps',
++             }}
++           >
+              <CarouselContent className='h-full'>
+                {pitchDeck.slides.map((slide: Slide, index: number) => (
+```
+
+---
+
+_****_
+
+I've made the following changes to fix the keyboard navigation:
+
+1. Added explicit handling of arrow keys in our keyboard event handler
+2. Added `preventDefault()` to ensure the browser doesn't handle the events
+3. Added Carousel options to improve navigation behavior:
+   - `dragFree: false` - Makes navigation more snappy
+   - `containScroll: 'trimSnaps'` - Ensures proper slide alignment
+
+The arrow keys should now work consistently in both normal and fullscreen modes. The navigation will be more responsive and reliable.
+
+Would you like me to:
+1. Add any additional keyboard shortcuts?
+2. Modify the navigation behavior further?
+3. Add visual feedback for keyboard navigation?
+4. Make any other improvements to the interaction?
+
+---
+
+_**User**_
+
+@PitchDeckForm.tsx ### **🚀 5 Example Projects for Demo Buttons**
+These will serve as **pre-filled form states** so users can quickly test the generator.
+
+#### **1️⃣ AI Resume Screener (HR Tech)**
+```json
+{
+  "businessIdea": "An AI-powered resume screening platform that helps companies automatically filter and rank candidates based on job descriptions.",
+  "industry": "HR Tech",
+  "targetMarket": "Recruiters, Hiring Managers, Enterprises",
+  "uniqueSellingPoint": "Uses advanced NLP to analyze resumes beyond keywords, assessing soft skills and cultural fit.",
+  "competitiveAdvantage": "Faster, unbiased candidate screening compared to manual processes.",
+  "financialProjections": "Targeting 1,000 company subscriptions in the first year, projected $5M ARR by year 3."
+}
+```
+
+#### **2️⃣ GreenCharge EV (Clean Energy)**
+```json
+{
+  "businessIdea": "A network of AI-optimized EV charging stations that dynamically adjust pricing and energy distribution based on demand.",
+  "industry": "Clean Energy, Electric Vehicles",
+  "targetMarket": "EV owners, fleet operators, municipalities",
+  "uniqueSellingPoint": "Smart AI-driven load balancing reduces energy costs for both users and providers.",
+  "competitiveAdvantage": "Unlike Tesla Superchargers, this is a brand-agnostic solution that works with all EVs.",
+  "financialProjections": "First-year deployment of 500 stations, scaling to 5,000 nationwide in five years."
+}
+```
+
+#### **3️⃣ FitAI Coach (Health & Wellness)**
+```json
+{
+  "businessIdea": "An AI-powered virtual fitness and nutrition coach that provides personalized workout and meal plans based on user data.",
+  "industry": "Health & Wellness",
+  "targetMarket": "Fitness enthusiasts, personal trainers, gyms",
+  "uniqueSellingPoint": "AI continuously adapts fitness routines and diets based on progress, health data, and goals.",
+  "competitiveAdvantage": "Unlike generic fitness apps, it leverages AI for real-time adjustments and motivation.",
+  "financialProjections": "Subscription-based model with 50,000 users in year one, reaching $10M ARR by year three."
+}
+```
+
+#### **4️⃣ LegalBot (AI Legal Tech)**
+```json
+{
+  "businessIdea": "An AI-driven chatbot that provides instant legal guidance and document drafting for startups and small businesses.",
+  "industry": "Legal Tech",
+  "targetMarket": "Startup founders, freelancers, small business owners",
+  "uniqueSellingPoint": "Instant, affordable legal guidance without expensive hourly lawyer fees.",
+  "competitiveAdvantage": "Trained on thousands of real legal cases and constantly updated with new regulations.",
+  "financialProjections": "Initial freemium model with paid consultations, targeting 100,000+ users within two years."
+}
+```
+
+#### **5️⃣ MetaReal (VR/AR Real Estate)**
+```json
+{
+  "businessIdea": "A virtual reality platform where users can tour and customize real estate properties in 3D before purchasing or renting.",
+  "industry": "PropTech, VR/AR",
+  "targetMarket": "Homebuyers, realtors, real estate developers",
+  "uniqueSellingPoint": "Immersive virtual tours with AI-driven home customization before purchase.",
+  "competitiveAdvantage": "Unlike traditional real estate listings, buyers can visualize renovations before making a decision.",
+  "financialProjections": "Partnering with major real estate agencies to generate $50M in transactions in year one."
+}
+```
+
+---
+
+### **🚀 Cursor AI Prompt to Implement the Demo Buttons**
+```plaintext
+Modify the existing pitch deck generator form by adding **five demo buttons** at the top.
+
+### Requirements:
+- Each button should **pre-fill** the form fields with a predefined example project.
+- Clicking a button replaces the form state with the corresponding example project.
+- Use **ShadCN Button components** for styling.
+
+### Example Button Layout:
+| AI Resume Screener | GreenCharge EV | FitAI Coach | LegalBot | MetaReal |
+
+🔧 **Tasks:**
+1. Add five buttons at the top of the form, each labeled with the project name.
+2. On click, set the form state to the respective example JSON.
+3. Ensure the "Generate Pitch Deck" button still works with the new pre-filled data.
+```
+
+🔥 **This will make the demo experience smoother and allow users to test different industries easily.**  
+🚀 **Good to go? Let me know if you need any refinements!**
+
+---
+
+_**Assistant**_
+
+I'll help you add the demo buttons to the P
 
 ---
 
