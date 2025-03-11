@@ -787,6 +787,18 @@ Would you like me to:
 
 ---
 
+_**User**_
+
+@SlideDisplay.tsx can you make the slides seem more like a "Pitch deck" eg same fixed height and width, similar to say a powerpoint presentation or pitch.com or whatever?
+
+---
+
+_**Assistant**_
+
+I'll modify the SlideDisplay component to have a fixed aspect ratio and styling that better resembles a traditional pitch deck presentation. I'll update the component to have a 16:9 aspect ratio (standard presentation ratio) and add some professional styling:
+
+---
+
 
 
 ---
