@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/carousel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { motion } from 'framer-motion'
 import type { PitchDeck, Slide } from '@/app/types/pitch'
 
 interface SlideDisplayProps {
@@ -35,18 +36,43 @@ export default function SlideDisplay({
     api.on('select', () => {
       setCurrentSlide(api.selectedScrollSnap() + 1)
     })
+
+    api.on('settle', () => {})
   }, [api])
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen && onExitFullscreen) {
-        onExitFullscreen()
+      if (!api) return
+
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'PageUp':
+          api.scrollPrev()
+          break
+        case 'ArrowRight':
+        case 'PageDown':
+        case 'Space':
+          api.scrollNext()
+          break
+        case 'Home':
+          api.scrollTo(0)
+          break
+        case 'End':
+          api.scrollTo(
+            pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0
+          )
+          break
+        case 'Escape':
+          if (isFullscreen && onExitFullscreen) {
+            onExitFullscreen()
+          }
+          break
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [isFullscreen, onExitFullscreen])
+  }, [api, isFullscreen, onExitFullscreen, pitchDeck?.slides.length])
 
   if (!pitchDeck) {
     return null
@@ -56,13 +82,30 @@ export default function SlideDisplay({
     ? 'fixed inset-0 z-50 bg-gray-900'
     : 'w-full max-w-[1024px] mx-auto'
 
+  const progress = (currentSlide / pitchDeck.slides.length) * 100
+
   return (
-    <div className={containerClasses}>
+    <motion.div
+      className={containerClasses}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div
         className={`relative h-full ${
           !isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''
         }`}
       >
+        {/* Progress bar */}
+        <div className='absolute top-0 left-0 right-0 h-1 bg-gray-200/20'>
+          <motion.div
+            className='h-full bg-blue-500/50 backdrop-blur-sm'
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+
         {/* Controls bar */}
         <div
           className={`
@@ -70,14 +113,16 @@ export default function SlideDisplay({
           ${isFullscreen ? 'text-white' : 'text-gray-900'}
         `}
         >
-          <div className='bg-gray-800/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium'>
-            Slide {currentSlide} of {pitchDeck.slides.length}
+          <div className='flex items-center gap-2 bg-gray-800/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium'>
+            <span className='text-xl font-bold'>{currentSlide}</span>
+            <span className='text-gray-400'>/</span>
+            <span className='text-gray-400'>{pitchDeck.slides.length}</span>
           </div>
           {isFullscreen && onExitFullscreen && (
             <Button
               variant='outline'
               onClick={onExitFullscreen}
-              className='bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20'
+              className='bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20 transition-colors'
             >
               Exit Fullscreen
             </Button>
@@ -88,46 +133,58 @@ export default function SlideDisplay({
           <CarouselContent className='h-full'>
             {pitchDeck.slides.map((slide: Slide, index: number) => (
               <CarouselItem key={index} className='h-full'>
-                {/* 16:9 aspect ratio container in normal mode, full height in fullscreen */}
-                <div
+                <motion.div
                   className={`relative w-full ${
                     isFullscreen ? 'h-full' : 'pt-[56.25%]'
                   }`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <Card
                     className={`
-                    absolute top-0 left-0 w-full h-full overflow-hidden
+                    absolute top-0 left-0 w-full h-full overflow-hidden transition-colors duration-300
                     ${isFullscreen ? 'bg-gray-900 text-white border-0' : ''}
                   `}
                   >
                     <div className='h-full flex flex-col'>
-                      {/* Header */}
                       <CardHeader
                         className={`
-                        flex-none py-8 border-b
+                        flex-none py-8 border-b transition-colors duration-300
                         ${
                           isFullscreen
-                            ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700'
+                            ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700'
                             : 'bg-gradient-to-br from-gray-50 to-white'
                         }
                       `}
                       >
-                        <CardTitle
-                          className={`
-                          text-4xl font-bold text-center
-                          ${isFullscreen ? 'text-white' : 'text-gray-900'}
-                        `}
+                        <motion.div
+                          initial={{ y: -20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
                         >
-                          {slide.title}
-                        </CardTitle>
+                          <CardTitle
+                            className={`
+                            text-4xl font-bold text-center
+                            ${isFullscreen ? 'text-white' : 'text-gray-900'}
+                          `}
+                          >
+                            {slide.title}
+                          </CardTitle>
+                        </motion.div>
                       </CardHeader>
 
-                      {/* Content area */}
                       <CardContent className='flex-1 p-8 overflow-y-auto'>
-                        <div className='max-w-4xl mx-auto space-y-6'>
+                        <motion.div
+                          className='max-w-4xl mx-auto space-y-6'
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ duration: 0.3, delay: 0.2 }}
+                        >
                           <p
                             className={`
-                            text-2xl leading-relaxed
+                            text-2xl leading-relaxed transition-colors duration-300
                             ${isFullscreen ? 'text-gray-200' : 'text-gray-700'}
                           `}
                           >
@@ -135,15 +192,28 @@ export default function SlideDisplay({
                           </p>
                           {slide.bulletPoints &&
                             slide.bulletPoints.length > 0 && (
-                              <ul className='space-y-4 list-none mt-8'>
+                              <motion.ul
+                                className='space-y-4 list-none mt-8'
+                                initial='hidden'
+                                animate='visible'
+                                variants={{
+                                  visible: {
+                                    transition: { staggerChildren: 0.1 },
+                                  },
+                                }}
+                              >
                                 {slide.bulletPoints.map((point, i) => (
-                                  <li
+                                  <motion.li
                                     key={i}
                                     className='flex items-start space-x-4'
+                                    variants={{
+                                      hidden: { opacity: 0, x: -20 },
+                                      visible: { opacity: 1, x: 0 },
+                                    }}
                                   >
                                     <span
                                       className={`
-                                    flex-none mt-2 w-2.5 h-2.5 rounded-full
+                                    flex-none mt-2 w-2.5 h-2.5 rounded-full transition-colors duration-300
                                     ${
                                       isFullscreen
                                         ? 'bg-blue-400'
@@ -153,7 +223,7 @@ export default function SlideDisplay({
                                     />
                                     <span
                                       className={`
-                                    text-xl
+                                    text-xl transition-colors duration-300
                                     ${
                                       isFullscreen
                                         ? 'text-gray-300'
@@ -163,56 +233,73 @@ export default function SlideDisplay({
                                     >
                                       {point}
                                     </span>
-                                  </li>
+                                  </motion.li>
                                 ))}
-                              </ul>
+                              </motion.ul>
                             )}
-                        </div>
+                        </motion.div>
                       </CardContent>
                     </div>
                   </Card>
-                </div>
+                </motion.div>
               </CarouselItem>
             ))}
           </CarouselContent>
 
-          {/* Navigation buttons */}
+          {/* Navigation buttons with hover effects */}
           <div
             className={`
-            absolute -left-12 top-1/2 -translate-y-1/2
+            absolute -left-12 top-1/2 -translate-y-1/2 transition-all duration-300
             ${isFullscreen ? 'left-4' : '-left-12'}
           `}
           >
-            <CarouselPrevious
-              className={`
-              h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
-              ${
-                isFullscreen
-                  ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
-                  : ''
-              }
-            `}
-            />
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <CarouselPrevious
+                className={`
+                h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+                ${
+                  isFullscreen
+                    ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+                    : ''
+                }
+              `}
+              />
+            </motion.div>
           </div>
           <div
             className={`
-            absolute -right-12 top-1/2 -translate-y-1/2
+            absolute -right-12 top-1/2 -translate-y-1/2 transition-all duration-300
             ${isFullscreen ? 'right-4' : '-right-12'}
           `}
           >
-            <CarouselNext
-              className={`
-              h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
-              ${
-                isFullscreen
-                  ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
-                  : ''
-              }
-            `}
-            />
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <CarouselNext
+                className={`
+                h-12 w-12 opacity-70 hover:opacity-100 transition-all duration-300
+                ${
+                  isFullscreen
+                    ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600'
+                    : ''
+                }
+              `}
+              />
+            </motion.div>
           </div>
         </Carousel>
+
+        {/* Keyboard shortcuts help */}
+        <div
+          className={`
+          absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 text-sm
+          bg-gray-800/10 backdrop-blur-sm px-4 py-2 rounded-full
+          ${isFullscreen ? 'text-gray-400' : 'text-gray-600'}
+        `}
+        >
+          <span>← → arrows to navigate</span>
+          <span>Space for next</span>
+          {isFullscreen && <span>Esc to exit</span>}
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

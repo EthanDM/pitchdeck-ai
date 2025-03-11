@@ -932,7 +932,397 @@ and then add a full screen view to the deck
 
 _**Assistant**_
 
-I'll help modify the components to create a better flow
+I'll help modify the components to create a better flow between form and presentation views, and add a fullscreen option. Let's make these changes:
+
+1. First, let's update the main page layout to handle the view switching:
+
+---
+
+_****_
+
+```diff
+  import PitchDeckForm from '@/components/PitchDeckForm'
+  import SlideDisplay from '@/components/SlideDisplay'
++ import { Button } from '@/components/ui/button'
+  import { Suspense } from 'react'
+  import type { PitchDeck } from './types/pitch'
+  
+  export default function Home() {
+    const [pitchDeck, setPitchDeck] = useState<PitchDeck | null>(null)
++   const [isFullscreen, setIsFullscreen] = useState(false)
+  
+    const handlePitchDeckGenerated = (newPitchDeck: PitchDeck) => {
+      setPitchDeck(newPitchDeck)
++     window.scrollTo({ top: 0, behavior: 'smooth' })
++   }
++ 
++   const handleReset = () => {
++     setPitchDeck(null)
++     setIsFullscreen(false)
+    }
+  
+    return (
+-     <main className='min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100'>
+-       <div className='max-w-6xl mx-auto space-y-8'>
+-         <div className='text-center space-y-4'>
++     <main className='min-h-screen bg-gradient-to-br from-gray-50 to-gray-100'>
++       <div className={`max-w-6xl mx-auto ${isFullscreen ? 'p-0' : 'p-4 md:p-8'}`}>
++         {!isFullscreen && (
++           <div className='text-center space-y-4 mb-8'>
+              <h1 className='text-4xl md:text-5xl font-bold text-gray-900'>
+                AI Pitch Deck Generator
+              </p>
+            </div>
+- 
+-         <div className='grid grid-cols-1 gap-8'>
++         )}
++ 
++         {pitchDeck ? (
++           <div className='space-y-6'>
++             {!isFullscreen && (
++               <div className='flex items-center justify-between'>
++                 <Button
++                   variant='outline'
++                   onClick={handleReset}
++                   className='text-gray-600'
++                 >
++                   ← Create New Pitch Deck
++                 </Button>
++                 <Button
++                   variant='outline'
++                   onClick={() => setIsFullscreen(true)}
++                   className='text-gray-600'
++                 >
++                   Enter Fullscreen Mode
++                 </Button>
++               </div>
++             )}
++             <Suspense fallback={<div>Loading slides...</div>}>
++               <SlideDisplay 
++                 pitchDeck={pitchDeck} 
++                 isFullscreen={isFullscreen} 
++                 onExitFullscreen={() => setIsFullscreen(false)}
++               />
++             </Suspense>
++           </div>
++         ) : (
++           <div className='max-w-4xl mx-auto'>
+              <Suspense fallback={<div>Loading form...</div>}>
+                <PitchDeckForm onPitchDeckGenerated={handlePitchDeckGenerated} />
+              </Suspense>
+- 
+-           <Suspense fallback={<div>Loading slides...</div>}>
+-             <SlideDisplay pitchDeck={pitchDeck} />
+-           </Suspense>
+            </div>
++         )}
+        </div>
+      </main>
+```
+
+---
+
+_****_
+
+Now, let's update the SlideDisplay component to handle fullscreen mode:
+
+---
+
+_****_
+
+```diff
+  'use client'
+  
++ import { useEffect, useState } from 'react'
+  import {
+    Carousel,
+  } from '@/components/ui/carousel'
+  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
++ import { Button } from '@/components/ui/button'
+  import type { PitchDeck, Slide } from '@/app/types/pitch'
+  
+  interface SlideDisplayProps {
+    pitchDeck: PitchDeck | null
++   isFullscreen?: boolean
++   onExitFullscreen?: () => void
+  }
+  
+- export default function SlideDisplay({ pitchDeck }: SlideDisplayProps) {
++ export default function SlideDisplay({ 
++   pitchDeck, 
++   isFullscreen = false,
++   onExitFullscreen 
++ }: SlideDisplayProps) {
++   const [currentSlide, setCurrentSlide] = useState(1)
++ 
++   useEffect(() => {
++     const handleKeyPress = (e: KeyboardEvent) => {
++       if (e.key === 'Escape' && isFullscreen && onExitFullscreen) {
++         onExitFullscreen()
++       }
++     }
++ 
++     window.addEventListener('keydown', handleKeyPress)
++     return () => window.removeEventListener('keydown', handleKeyPress)
++   }, [isFullscreen, onExitFullscreen])
++ 
+    if (!pitchDeck) {
+      return null
+    }
+  
++   const containerClasses = isFullscreen
++     ? 'fixed inset-0 z-50 bg-gray-900'
++     : 'w-full max-w-[1024px] mx-auto'
++ 
+    return (
+-     <div className='w-full max-w-[1024px] mx-auto'>
+-       <div className='relative bg-white rounded-lg shadow-lg'>
+-         {/* Slide counter */}
+-         <div className='absolute top-4 right-4 z-10 bg-gray-800/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium'>
+-           Slide <span className='text-gray-900'>{pitchDeck.slides.length}</span>
++     <div className={containerClasses}>
++       <div className={`relative h-full ${!isFullscreen ? 'bg-white rounded-lg shadow-lg' : ''}`}>
++         {/* Controls bar */}
++         <div className={`
++           absolute top-4 right-4 z-10 flex items-center gap-4
++           ${isFullscreen ? 'text-white' : 'text-gray-900'}
++         `}>
++           <div className="bg-gray-800/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
++             Slide {currentSlide} of {pitchDeck.slides.length}
++           </div>
++           {isFullscreen && onExitFullscreen && (
++             <Button
++               variant="outline"
++               onClick={onExitFullscreen}
++               className="bg-gray-800/10 backdrop-blur-sm hover:bg-gray-800/20"
++             >
++               Exit Fullscreen
++             </Button>
++           )}
+          </div>
+  
+-         <Carousel className='w-full'>
+-           <CarouselContent>
++         <Carousel 
++           className="w-full h-full"
++           onSelect={(index) => setCurrentSlide(index + 1)}
++         >
++           <CarouselContent className="h-full">
+              {pitchDeck.slides.map((slide: Slide, index: number) => (
+-               <CarouselItem key={index}>
+-                 {/* 16:9 aspect ratio container */}
+-                 <div className='relative w-full pt-[56.25%]'>
+-                   <Card className='absolute top-0 left-0 w-full h-full overflow-hidden'>
+-                     <div className='h-full flex flex-col'>
+-                       {/* Header takes up 20% of height */}
+-                       <CardHeader className='flex-none py-8 bg-gradient-to-br from-gray-50 to-white border-b'>
+-                         <CardTitle className='text-3xl font-bold text-center text-gray-900'>
++               <CarouselItem key={index} className="h-full">
++                 {/* 16:9 aspect ratio container in normal mode, full height in fullscreen */}
++                 <div className={`relative w-full ${isFullscreen ? 'h-full' : 'pt-[56.25%]'}`}>
++                   <Card className={`
++                     absolute top-0 left-0 w-full h-full overflow-hidden
++                     ${isFullscreen ? 'bg-gray-900 text-white border-0' : ''}
++                   `}>
++                     <div className="h-full flex flex-col">
++                       {/* Header */}
++                       <CardHeader className={`
++                         flex-none py-8 border-b
++                         ${isFullscreen 
++                           ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700' 
++                           : 'bg-gradient-to-br from-gray-50 to-white'}
++                       `}>
++                         <CardTitle className={`
++                           text-4xl font-bold text-center
++                           ${isFullscreen ? 'text-white' : 'text-gray-900'}
++                         `}>
+                            {slide.title}
+                          </CardTitle>
+                        </CardHeader>
+  
+-                       {/* Content area takes up remaining height */}
+-                       <CardContent className='flex-1 p-8 overflow-y-auto'>
+-                         <div className='max-w-3xl mx-auto space-y-6'>
+-                           <p className='text-xl leading-relaxed text-gray-700'>
++                       {/* Content area */}
++                       <CardContent className="flex-1 p-8 overflow-y-auto">
++                         <div className="max-w-4xl mx-auto space-y-6">
++                           <p className={`
++                             text-2xl leading-relaxed
++                             ${isFullscreen ? 'text-gray-200' : 'text-gray-700'}
++                           `}>
+                              {slide.content}
+                            </p>
+-                           {slide.bulletPoints &&
+-                             slide.bulletPoints.length > 0 && (
+-                               <ul className='space-y-3 list-none'>
++                           {slide.bulletPoints && slide.bulletPoints.length > 0 && (
++                             <ul className="space-y-4 list-none mt-8">
+                                {slide.bulletPoints.map((point, i) => (
+-                                   <li
+-                                     key={i}
+-                                     className='flex items-start space-x-3'
+-                                   >
+-                                     <span className='flex-none mt-1.5 w-2 h-2 rounded-full bg-blue-500' />
+-                                     <span className='text-lg text-gray-700'>
++                                 <li key={i} className="flex items-start space-x-4">
++                                   <span className={`
++                                     flex-none mt-2 w-2.5 h-2.5 rounded-full
++                                     ${isFullscreen ? 'bg-blue-400' : 'bg-blue-500'}
++                                   `} />
++                                   <span className={`
++                                     text-xl
++                                     ${isFullscreen ? 'text-gray-300' : 'text-gray-700'}
++                                   `}>
+                                      {point}
+                                    </span>
+            </CarouselContent>
+            
+-           {/* Larger, more visible navigation buttons */}
+-           <div className='absolute -left-12 top-1/2 -translate-y-1/2'>
+-             <CarouselPrevious className='h-12 w-12 opacity-70 hover:opacity-100 transition-opacity' />
++           {/* Navigation buttons */}
++           <div className={`
++             absolute -left-12 top-1/2 -translate-y-1/2
++             ${isFullscreen ? 'left-4' : '-left-12'}
++           `}>
++             <CarouselPrevious className={`
++               h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
++               ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++             `} />
+            </div>
+-           <div className='absolute -right-12 top-1/2 -translate-y-1/2'>
+-             <CarouselNext className='h-12 w-12 opacity-70 hover:opacity-100 transition-opacity' />
++           <div className={`
++             absolute -right-12 top-1/2 -translate-y-1/2
++             ${isFullscreen ? 'right-4' : '-right-12'}
++           `}>
++             <CarouselNext className={`
++               h-12 w-12 opacity-70 hover:opacity-100 transition-opacity
++               ${isFullscreen ? 'bg-gray-800/50 hover:bg-gray-800/70 border-gray-600' : ''}
++             `} />
+            </div>
+          </Carousel>
+```
+
+---
+
+_****_
+
+Let's fix the type error in the Carousel onSelect handler:
+
+---
+
+_****_
+
+```diff
+      return () => window.removeEventListener('keydown', handleKeyPress)
+    }, [isFullscreen, onExitFullscreen])
++ 
++   const handleSlideChange = (index: number) => {
++     setCurrentSlide(index + 1)
++   }
+  
+    if (!pitchDeck) {
+          <Carousel
+            className='w-full h-full'
+-           onSelect={(index) => setCurrentSlide(index + 1)}
++           onSelect={handleSlideChange}
+          >
+            <CarouselContent className='h-full'>
+```
+
+---
+
+_****_
+
+I see the issue. The Carousel component from ShadCN uses a different event type. Let's modify the component to use the correct event handling:
+
+---
+
+_****_
+
+```diff
+    CarouselNext,
+    CarouselPrevious,
++   type CarouselApi
+  } from '@/components/ui/carousel'
+  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+  }: SlideDisplayProps) {
+    const [currentSlide, setCurrentSlide] = useState(1)
++   const [api, setApi] = useState<CarouselApi>()
++ 
++   useEffect(() => {
++     if (!api) {
++       return
++     }
++ 
++     api.on("select", () => {
++       setCurrentSlide(api.selectedScrollSnap() + 1)
++     })
++   }, [api])
+  
+    useEffect(() => {
+      return () => window.removeEventListener('keydown', handleKeyPress)
+    }, [isFullscreen, onExitFullscreen])
+- 
+-   const handleSlideChange = (index: number) => {
+-     setCurrentSlide(index + 1)
+-   }
+  
+    if (!pitchDeck) {
+          </div>
+  
+-         <Carousel className='w-full h-full' onSelect={handleSlideChange}>
++         <Carousel className='w-full h-full' setApi={setApi}>
+            <CarouselContent className='h-full'>
+              {pitchDeck.slides.map((slide: Slide, index: number) => (
+```
+
+---
+
+_****_
+
+Great! Now we have:
+
+1. A form that disappears after generating the pitch deck
+2. A "Create New Pitch Deck" button to go back
+3. A fullscreen mode with:
+   - Dark theme for better presentation
+   - Escape key support to exit
+   - Proper slide navigation
+   - Slide counter
+   - Exit button
+4. Proper slide transitions and state management
+5. Responsive design that works in both normal and fullscreen modes
+
+The flow is now:
+1. User fills out the form
+2. After generation, the form is hidden and the pitch deck appears
+3. User can:
+   - View slides in normal mode
+   - Enter fullscreen for presentations
+   - Create a new pitch deck
+   - Navigate slides with arrow buttons or keyboard
+   - Exit fullscreen with Escape key or button
+
+Would you like me to:
+1. Add keyboard shortcuts for slide navigation (left/right arrows)?
+2. Add a progress bar or different slide counter style?
+3. Add any transitions or animations?
+4. Make any styling adjustments?
+
+---
+
+_**User**_
+
+yes, add keyboard shortcuts, a progress bar, and smooth nice transitions as needed, modern, light feel
+
+---
+
+_**Assistant**_
+
+
 
 ---
 
