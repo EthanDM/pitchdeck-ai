@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 import type { BusinessDetails, PitchDeck, Slide } from '@/app/types/pitch'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!, // Use env variable
+  apiKey:
+    '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', // Use env variable
 })
 
 async function generateDetailedPitchDeck(
