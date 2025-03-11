@@ -10,7 +10,11 @@ export interface BusinessDetails {
 export interface Slide {
   title: string
   content: string
-  bulletPoints?: string[]
+  subSections: {
+    title: string
+    content: string
+    bulletPoints?: string[]
+  }[]
   imagePrompt?: string
 }
 
