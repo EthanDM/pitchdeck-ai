@@ -799,6 +799,143 @@ I'll modify the SlideDisplay component to have a fixed aspect ratio and styling 
 
 ---
 
+_****_
+
+```diff
+  
+    return (
+-     <div className='w-full max-w-4xl mx-auto'>
+-       <Carousel className='w-full'>
++     <div className="w-full max-w-[1024px] mx-auto">
++       <div className="relative bg-white rounded-lg shadow-lg">
++         {/* Slide counter */}
++         <div className="absolute top-4 right-4 z-10 bg-gray-800/10 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
++           Slide <span className="text-gray-900">{pitchDeck.slides.length}</span>
++         </div>
++ 
++         <Carousel className="w-full">
+            <CarouselContent>
+              {pitchDeck.slides.map((slide: Slide, index: number) => (
+                <CarouselItem key={index}>
+-               <Card className='p-6'>
+-                 <CardHeader>
+-                   <CardTitle className='text-2xl font-bold text-center'>
++                 {/* 16:9 aspect ratio container */}
++                 <div className="relative w-full pt-[56.25%]">
++                   <Card className="absolute top-0 left-0 w-full h-full overflow-hidden">
++                     <div className="h-full flex flex-col">
++                       {/* Header takes up 20% of height */}
++                       <CardHeader className="flex-none py-8 bg-gradient-to-br from-gray-50 to-white border-b">
++                         <CardTitle className="text-3xl font-bold text-center text-gray-900">
+                            {slide.title}
+                          </CardTitle>
+                        </CardHeader>
+-                 <CardContent className='space-y-4'>
+-                   <p className='text-gray-700'>{slide.content}</p>
++ 
++                       {/* Content area takes up remaining height */}
++                       <CardContent className="flex-1 p-8 overflow-y-auto">
++                         <div className="max-w-3xl mx-auto space-y-6">
++                           <p className="text-xl leading-relaxed text-gray-700">
++                             {slide.content}
++                           </p>
+                            {slide.bulletPoints && slide.bulletPoints.length > 0 && (
+-                     <ul className='list-disc list-inside space-y-2'>
++                             <ul className="space-y-3 list-none">
+                                {slide.bulletPoints.map((point, i) => (
+-                         <li key={i} className='text-gray-600'>
+-                           {point}
++                                 <li key={i} className="flex items-start space-x-3">
++                                   <span className="flex-none mt-1.5 w-2 h-2 rounded-full bg-blue-500" />
++                                   <span className="text-lg text-gray-700">{point}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
++                         </div>
+                        </CardContent>
++                     </div>
+                    </Card>
++                 </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+-         <CarouselPrevious />
+-         <CarouselNext />
++           
++           {/* Larger, more visible navigation buttons */}
++           <div className="absolute -left-12 top-1/2 -translate-y-1/2">
++             <CarouselPrevious className="h-12 w-12 opacity-70 hover:opacity-100 transition-opacity" />
++           </div>
++           <div className="absolute -right-12 top-1/2 -translate-y-1/2">
++             <CarouselNext className="h-12 w-12 opacity-70 hover:opacity-100 transition-opacity" />
++           </div>
+          </Carousel>
++       </div>
+      </div>
+    )
+```
+
+---
+
+_****_
+
+I've made several improvements to make the slides look more like a professional pitch deck:
+
+1. **Fixed Aspect Ratio**: Added a 16:9 aspect ratio container (standard presentation format) using the `pt-[56.25%]` technique
+2. **Fixed Width**: Set a maximum width of 1024px for optimal viewing
+3. **Professional Layout**:
+   - Added a slide counter in the top-right corner
+   - Created a more prominent header section with a subtle gradient
+   - Improved typography with larger text sizes
+   - Better spacing and padding
+4. **Better Navigation**:
+   - Larger, more visible navigation buttons
+   - Positioned outside the slide content
+   - Added hover effects
+5. **Bullet Points**:
+   - Custom styled bullets with blue dots
+   - Better spacing and alignment
+   - Improved readability
+6. **Visual Improvements**:
+   - Added a subtle shadow to the slide container
+   - Better background colors and gradients
+   - Improved contrast for better readability
+
+The slides now have:
+- A consistent size and aspect ratio
+- A more professional layout
+- Better visual hierarchy
+- Improved navigation
+- More polished appearance overall
+
+Would you like me to make any adjustments to:
+1. The aspect ratio (currently 16:9)
+2. The maximum width (currently 1024px)
+3. The styling (colors, typography, spacing)
+4. The navigation controls
+5. Any other aspects of the presentation?
+
+---
+
+_**User**_
+
+aftter the ptich deck is generated, teh form should hide
+
+the slide should be in the main area of the page
+
+perhaps a go back at the top or soemthing
+
+and then add a full screen view to the deck 
+
+---
+
+_**Assistant**_
+
+I'll help modify the components to create a better flow
+
+---
+
 
 
 ---
