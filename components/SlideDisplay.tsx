@@ -56,11 +56,7 @@ export default function SlideDisplay({
           api.scrollPrev()
           break
         case 'PageDown':
-          e.preventDefault()
-          api.scrollNext()
-          break
         case 'Space':
-          // Only handle space if not in an input/textarea
           if (
             !(
               e.target instanceof HTMLInputElement ||
@@ -157,6 +153,7 @@ export default function SlideDisplay({
             opts={{
               dragFree: false,
               containScroll: 'trimSnaps',
+              skipSnaps: true,
             }}
           >
             <CarouselContent className='h-full'>

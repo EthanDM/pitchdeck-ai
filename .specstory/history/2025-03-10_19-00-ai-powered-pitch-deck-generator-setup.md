@@ -3297,6 +3297,155 @@ _****_
 
 _****_
 
+This adds the optional `bulletPoints` property to the `Slide` interface, which should resolve the TypeScript error. The property is marked as optional with `?` since not all slides will have bullet points.
+
+---
+
+_**User**_
+
+@SlideDisplay.tsx hmm im still getting double navigate on arrow key press - need to make sure it wokrs both in FULL screen and regular view, not 2x
+
+---
+
+_**Assistant**_
+
+The double navigation is happening because both the Carousel's built-in keyboard handling and our custom keyboard handler are active. Let's modify our keyboard handler to only handle non-arrow keys in regular view, and all keys in fullscreen:
+
+---
+
+_****_
+
+```diff
+    useEffect(() => {
+      const handleKeyPress = (e: KeyboardEvent) => {
+-       if (!api) return
+- 
++       if (!api) return;
++ 
++       // Only handle arrow keys in fullscreen mode
++       if (isFullscreen) {
++         switch (e.key) {
++           case 'ArrowLeft':
++           case 'ArrowRight':
++             e.preventDefault();
++             e.key === 'ArrowLeft' ? api.scrollPrev() : api.scrollNext();
++             break;
++         }
++       }
++ 
++       // Handle other navigation keys in both modes
+        switch (e.key) {
+-         case 'ArrowLeft':
+-           e.preventDefault()
+-           api.scrollPrev()
+-           break
+-         case 'ArrowRight':
+-           e.preventDefault()
+-           api.scrollNext()
+-           break
+          case 'PageUp':
+-           e.preventDefault()
+-           api.scrollPrev()
+-           break
++           e.preventDefault();
++           api.scrollPrev();
++           break;
+          case 'PageDown':
+-           e.preventDefault()
+-           api.scrollNext()
+-           break
+          case 'Space':
+-           // Only handle space if not in an input/textarea
+-           if (
+-             !(
+-               e.target instanceof HTMLInputElement ||
+-               e.target instanceof HTMLTextAreaElement
+-             )
+-           ) {
+-             e.preventDefault()
+-             api.scrollNext()
++           if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
++             e.preventDefault();
++             api.scrollNext();
+            }
+-           break
++           break;
+          case 'Home':
+-           e.preventDefault()
+-           api.scrollTo(0)
+-           break
++           e.preventDefault();
++           api.scrollTo(0);
++           break;
+          case 'End':
+-           e.preventDefault()
+-           api.scrollTo(
+-             pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0
+-           )
+-           break
++           e.preventDefault();
++           api.scrollTo(pitchDeck?.slides.length ? pitchDeck.slides.length - 1 : 0);
++           break;
+          case 'Escape':
+            if (isFullscreen && onExitFullscreen) {
+-             onExitFullscreen()
++             onExitFullscreen();
+            }
+-           break
++           break;
+        }
+-     }
++     };
+  
+-     window.addEventListener('keydown', handleKeyPress)
+-     return () => window.removeEventListener('keydown', handleKeyPress)
+-   }, [api, isFullscreen, onExitFullscreen, pitchDeck?.slides.length])
++     window.addEventListener('keydown', handleKeyPress);
++     return () => window.removeEventListener('keydown', handleKeyPress);
++   }, [api, isFullscreen, onExitFullscreen, pitchDeck?.slides.length]);
+  
+    if (!pitchDeck) {
+```
+
+---
+
+_****_
+
+Now the keyboard navigation should work properly:
+1. In regular view: Carousel handles arrow keys, we handle other keys (Page Up/Down, Space, Home/End)
+2. In fullscreen: We handle all navigation keys
+3. No more double navigation
+
+Would you like me to make any adjustments to this behavior?
+
+---
+
+_**User**_
+
+no arrows are NOT working when NOT in full scren
+
+make sure ARROWS WORK in NON FULL SCREEN
+
+NO DOUBLE NAVIGATING
+
+AND WORK IN FULLS CREEN
+
+---
+
+_**Assistant**_
+
+Ah, I see the issue. We need to reverse the logic. Let's handle arrow keys in regular view and disable Carousel's built-in keyboard navigation in fullscreen. Here's the fix:
+
+---
+
+_****_
+
+
+
+---
+
+_****_
+
 
 
 ---
